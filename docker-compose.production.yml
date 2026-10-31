@@ -1,0 +1,24 @@
+# Single backend replica only: restart recovery assumes exclusive job ownership.
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      ENVIRONMENT: production
+      HF_HOME: /model-cache
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - model_cache:/model-cache
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
+    stop_grace_period: 120s
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 180s
+      retries: 3
+volumes:
+  model_cache:

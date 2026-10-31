@@ -1,0 +1,23 @@
+# Local dev convenience: runs the FastAPI backend in a container.
+# The frontend is run separately with `npm run dev` (Vite has its own fast
+# dev server / HMR that a container adds no value to during development).
+#
+# Supabase is NOT self-hosted here — this project uses hosted Supabase
+# (supabase.com). Point SUPABASE_URL / SUPABASE_SERVICE_KEY at your project.
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+      - model_cache:/model-cache
+    environment:
+      HF_HOME: /model-cache
+    # Reloading during OCR interrupts processing. Restart after editing backend code.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+volumes:
+  model_cache:

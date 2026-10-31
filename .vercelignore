@@ -1,0 +1,13 @@
+backend
+supabase
+artifacts
+.venv
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules
+**/dist
+**/artifacts
+**/*.log
+**/*.zip
+frontend/tests

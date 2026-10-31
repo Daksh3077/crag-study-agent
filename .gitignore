@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Env files
+.env
+.env.local
+.env.*
+!.env.example
+
+# Node
+node_modules/
+dist/
+frontend/dist/
+*.tsbuildinfo
+artifacts/
+backend/artifacts/
+.pytest_cache/
+.ruff_cache/
+*.zip
+
+# OS
+.DS_Store
+*.log
+.vercel/
+supabase/.temp/
+
+# Local project notes and reports
+/project explaination.md
+/DEPLOYMENT_READINESS.md
+/FINAL_TEST_REPORT.md
+/RELEASE_RUNBOOK.md
+/VERIFICATION.md
+
+# Optional evaluation and diagnostic material
+/backend/evaluation/
+/backend/scripts/
+/backend/tests/test_evaluation_coverage.py
+/backend/tests/test_release_config.py
+/frontend/tests/quota-preview.html
