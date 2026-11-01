@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
-from app.api import chat, documents, analytics
+from app.api import chat, documents, analytics, usage
 from app.core.config import get_settings
 from app.core.database import get_supabase
 from app.services.embeddings import warm_models
@@ -70,6 +70,7 @@ app.add_middleware(CORSMiddleware,
 app.include_router(chat.router)
 app.include_router(documents.router)
 app.include_router(analytics.router)
+app.include_router(usage.router)
 
 @app.get("/")
 @app.get("/health")

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
+import SessionAllowance from "../components/SessionAllowance";
+import { useSessionUsage } from "../lib/useSessionUsage";
 import AnswerContent from "../components/AnswerContent";
 import DocumentList from "../components/DocumentList";
 import PipelineTrace from "../components/PipelineTrace";
@@ -17,6 +19,8 @@ const statuses = { supported: "Checked against sources", unsupported: "Could not
   not_checked: "Adaptive answer · not independently checked",
   unavailable: "Source check unavailable", insufficient_context: "Not enough evidence", generation_failed: "Generation failed" };
 export default function StudyWorkspace() {
+  const { usage, usageError, refreshUsage } = useSessionUsage();
+  const questionsBlocked = !usage || usage.questions_used >= usage.questions_limit;
   const [params] = useSearchParams();
   const [documents, setDocuments] = useState<DocumentOut[]>([]);
   const [selected, setSelected] = useState<string[]>(params.get("document") ? [params.get("document")!] : []);
@@ -44,7 +48,7 @@ export default function StudyWorkspace() {
   }, []);
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth" }); }, [turns, loading]);
   async function send() {
-    if (!input.trim() || loading || !documents.length) return;
+    if (!input.trim() || loading || !documents.length || questionsBlocked) return;
     const question = input.trim();
     setInput(""); setError(""); setLoading(true);
     setAnswerPending(true); setProgress(null);
@@ -62,7 +66,7 @@ export default function StudyWorkspace() {
       setError(e instanceof Error ? e.message : "Could not reach the study agent.");
       setInput(question);
       setTurns(t => t.slice(0, -1));
-    } finally { setLoading(false); setAnswerPending(false); setProgress(null); activeRequest.current = null; }
+    } finally { await refreshUsage(); setLoading(false); setAnswerPending(false); setProgress(null); activeRequest.current = null; }
   }
   async function openConversation(id: string) {
     if (loading) return;
@@ -137,11 +141,12 @@ export default function StudyWorkspace() {
           <div ref={bottom} />
         </div>
         <form className="p-4 border-t border-slate-800" onSubmit={e => { e.preventDefault(); void send(); }}>
+          <SessionAllowance usage={usage} error={usageError} onRetry={() => { void refreshUsage(); }} />
           {error && <p role="alert" className="notice mb-3">{error}</p>}
           <div className="flex gap-2"><label className="sr-only" htmlFor="question">Question about your notes</label>
             <textarea id="question" rows={2} className="field resize-none" value={input} maxLength={4000} placeholder="Ask about your notes…"
               onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }} />
-            <button className="primary self-end" disabled={loading || !input.trim() || !documents.length}>Send</button>
+            <button className="primary self-end" disabled={loading || !input.trim() || !documents.length || questionsBlocked}>Send</button>
           </div>
         </form>
       </main>

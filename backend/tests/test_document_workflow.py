@@ -55,6 +55,17 @@ class MemoryDB:
         self.rows, self.files = {}, {}
         self.storage = self
     def table(self, name): return MemoryQuery(self, name)
+    def rpc(self, name, params):
+        assert name == "consume_guest_usage"
+        rows = self.rows.setdefault("guest_usage", [])
+        row = next((r for r in rows if r["user_id"] == params["p_user_id"]), None)
+        if row is None:
+            row = {"user_id": params["p_user_id"], "questions": 0, "uploads": 0}
+            rows.append(row)
+        kind = params["p_kind"]
+        allowed = row[kind] < {"questions": 5, "uploads": 2}[kind]
+        if allowed: row[kind] += 1
+        return SimpleNamespace(execute=lambda: SimpleNamespace(data=allowed))
     def from_(self, bucket): return self
     def upload(self, path, data, options): self.files[path] = data
     def download(self, path): return self.files[path]
@@ -70,7 +81,8 @@ class DocumentWorkflowTests(unittest.TestCase):
         app.dependency_overrides[current_user] = lambda: self.owner
         self.addCleanup(app.dependency_overrides.clear)
         for target in ("app.api.documents.get_supabase", "app.core.auth.get_supabase",
-                       "app.api.chat.get_supabase", "app.services.document_processor.get_supabase"):
+                       "app.api.chat.get_supabase", "app.services.document_processor.get_supabase",
+                       "app.services.usage_limits.get_supabase"):
             mock = patch(target, return_value=self.db)
             mock.start()
             self.addCleanup(mock.stop)

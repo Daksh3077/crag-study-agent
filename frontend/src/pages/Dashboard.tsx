@@ -2,9 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { UploadCloud } from "lucide-react";
 import AppHeader from "../components/AppHeader";
+import SessionAllowance from "../components/SessionAllowance";
+import { useSessionUsage } from "../lib/useSessionUsage";
 import { deleteDocument, listDocuments, retryDocument, uploadDocument, type DocumentOut } from "../services/api";
 
 export default function Dashboard() {
+  const { usage, usageError, refreshUsage } = useSessionUsage();
+  const uploadsBlocked = !usage || usage.uploads_used >= usage.uploads_limit;
   const [documents, setDocuments] = useState<DocumentOut[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -31,10 +35,11 @@ export default function Dashboard() {
     return () => window.clearInterval(timer);
   }, [processing, refresh]);
   async function upload(file: File) {
+    if (uploadsBlocked) return;
     setUploading(true); setError("");
     try { await uploadDocument({ file, subject, ocr_mode: ocrMode }); await refresh(); }
     catch (e) { setError(e instanceof Error ? e.message : "Upload failed."); }
-    finally { setUploading(false); }
+    finally { await refreshUsage(); setUploading(false); }
   }
   async function action(id: string, type: "retry" | "delete") {
     if (type === "delete" && !window.confirm("Delete this document and its indexed content?")) return;
@@ -46,6 +51,7 @@ export default function Dashboard() {
       <div className="library-heading"><div><p className="eyebrow">YOUR PERSONAL KNOWLEDGE SPACE</p><h1>A library of possibilities.</h1><p className="mt-2 text-sm text-slate-400">Bring your notes. Find your next moment of clarity.</p></div><div className="library-stats"><div><strong>{loading ? '—' : documents.length}</strong><span>Documents</span></div><div><strong>{loading ? '—' : documents.filter(d => d.status === 'ready').length}</strong><span>Ready to study</span></div></div></div>
       <p className="text-xs text-slate-400">Your library is private to this browser session. Keep this browser's site data to retain access; another browser or device starts a separate library.</p>
       <section aria-label="Upload study material" className="panel upload-panel space-y-4">
+        <SessionAllowance usage={usage} error={usageError} onRetry={() => { void refreshUsage(); }} />
         <div className="upload-title"><UploadCloud size={25} aria-hidden="true" /><div><h2 className="font-medium">Add to your library</h2><p className="text-xs text-slate-400 mt-1">Typed, scanned, or handwritten. Start with a document.</p></div></div>
         <div className="grid sm:grid-cols-2 gap-4">
           <label className="text-sm">Document type<select className="field mt-1" value={ocrMode} onChange={e => setOcrMode(e.target.value as "auto" | "force")}>
@@ -57,7 +63,7 @@ export default function Dashboard() {
         <label className="upload-zone block rounded-xl border border-dashed p-6 text-center cursor-pointer hover:border-brand-400">
           <span>{uploading ? "Saving your document…" : "Choose a PDF, TXT, JPG, PNG or WEBP"}</span>
           <input aria-label="Choose study document" type="file" className="block mx-auto mt-4 max-w-full text-sm text-slate-400"
-            accept=".pdf,.txt,.jpg,.jpeg,.png,.webp" disabled={uploading}
+            accept=".pdf,.txt,.jpg,.jpeg,.png,.webp" disabled={uploading || uploadsBlocked}
             onChange={e => { const file = e.target.files?.[0]; if (file) void upload(file); e.target.value = ""; }} />
         </label>
       </section>

@@ -13,6 +13,7 @@ from app.models.schemas import DocumentOut
 from app.services.document_processor import process_document
 from app.services.provider_limits import saved_retry_seconds, quota_matches
 from app.services.retrieval_service import invalidate_bm25_cache
+from app.services.usage_limits import consume_usage
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 MIME = {".pdf": "application/pdf", ".txt": "text/plain", ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
@@ -48,6 +49,7 @@ def upload_document(background_tasks: BackgroundTasks, file: UploadFile = File(.
         raise HTTPException(413, f"Upload a non-empty file up to {settings.max_upload_mb} MB.")
     if extension == ".pdf" and not data.lstrip().startswith(b"%PDF-"):
         raise HTTPException(400, "This file is not a valid PDF.")
+    consume_usage(user_id, "uploads")
     document_id = str(uuid.uuid4())
     path = f"{user_id}/{document_id}/original{extension}"
     bucket = sb.storage.from_(settings.storage_bucket)

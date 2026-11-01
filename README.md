@@ -13,6 +13,12 @@ A study assistant for typed and handwritten PDFs, images, and text notes. Upload
 
 No signup is required. Each browser gets a private guest library. Keep that browser's site data to retain access; another browser or device starts a separate library.
 
+## Public demo limits
+
+Each private guest session has **5 questions across all study modes** and **2 total uploads**. The backend reserves usage atomically in Supabase before expensive work starts. Accepted requests count even if later processing fails; invalid inputs rejected before reservation do not count.
+
+Refreshing the page, starting a conversation, deleting a file, and restarting the backend do not reset these allowances. Existing documents and answers remain readable. The allowance follows the guest identity stored in the browser; it is not a per-person limit and a new guest identity receives a new allowance. Existing users start with a fresh allowance when this feature is introduced.
+
 ## Hosting
 
 | Component | Deployment |
@@ -24,7 +30,7 @@ No signup is required. Each browser gets a private guest library. Keep that brow
 | Answer generation | Groq API |
 | Embeddings and reranking | Local models on the backend VM |
 
-The current frontend release was deployed directly to Vercel. Automatic deployments from GitHub are not connected yet. The backend uses Google Cloud trial credits; continued availability depends on hosting resources and provider quotas.
+The frontend is connected to this GitHub repository through Vercel; pushes to `main` deploy the frontend automatically. Backend changes still require a separate Docker deployment on Google Cloud. The backend uses Google Cloud trial credits; continued availability depends on hosting resources and provider quotas.
 
 ## Features
 
@@ -59,6 +65,7 @@ For a new project, apply the migrations in order:
 
 1. `supabase/migrations/0001_init.sql`
 2. `supabase/migrations/20260914191832_reliable_handwritten_pipeline.sql`
+3. `supabase/migrations/20261101130516_guest_usage_limits.sql`
 
 For an existing project, review and apply only migrations not already applied. The second migration preserves existing rows, creates private original-file storage, and restricts data access to the authenticated backend. Legacy incompatible documents may require re-uploading. Unowned legacy rows are not assigned automatically to new guests.
 

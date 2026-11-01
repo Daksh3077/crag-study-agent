@@ -12,6 +12,7 @@ from app.agents.graph import run_agent
 from app.services.llm_client import public_error
 from app.services import chat_progress
 from app.services.provider_limits import observe_quota
+from app.services.usage_limits import consume_usage
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,8 @@ def _answer(request: ChatRequest, user_id: str):
             raise HTTPException(404, "Conversation not found.")
         history = sb.table("messages").select("role,content").eq("conversation_id", conversation_id).order("created_at", desc=True).limit(12).execute().data or []
         history.reverse()
-    else:
+    consume_usage(user_id, "questions")
+    if not request.conversation_id:
         sb.table("conversations").insert({"id": conversation_id, "user_id": user_id, "title": request.question[:60]}).execute()
     started_at = datetime.now(timezone.utc)
     start = time.perf_counter()

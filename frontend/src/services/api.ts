@@ -69,5 +69,9 @@ export const deleteDocument = (id: string) => request("/api/documents/" + id, { 
 export const retryDocument = (id: string) => request("/api/documents/" + id + "/retry", { method: "POST" });
 export const getDocumentSource = (id: string) => request<{ url: string }>("/api/documents/" + id + "/source");
 export const getAnalyticsSummary = () => request<AnalyticsSummary>("/api/analytics/summary");
+export interface SessionUsage {
+  questions_used: number; questions_limit: number; uploads_used: number; uploads_limit: number;
+}
+export const getSessionUsage = () => request<SessionUsage>("/api/usage", { cache: "no-store" });
 export const listConversations = () => request<Conversation[]>("/api/chat/conversations");
 export const getConversation = (id: string) => request<SavedTurn[]>("/api/chat/conversations/" + id);
