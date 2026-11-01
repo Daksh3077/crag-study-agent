@@ -1,6 +1,30 @@
 # CRAG Study Agent
 
+**[Open the live app → crag-study-agent.vercel.app](https://crag-study-agent.vercel.app)**
+
 A study assistant for typed and handwritten PDFs, images, and text notes. Upload documents, ask questions, and inspect page-linked source passages. The app combines Gemini OCR, local semantic and keyword retrieval, and Groq answer generation with optional independent source checking.
+
+## Try it online
+
+1. Open the [live app](https://crag-study-agent.vercel.app) and select **Open your study room**.
+2. Upload a PDF, TXT, JPG, PNG, or WEBP file. For handwritten pages, choose **Handwritten / mixed pages: OCR every page**.
+3. Wait for processing, then select **Study this document**.
+4. Ask a question or choose a study mode. Open the cited source passages to review the evidence.
+
+No signup is required. Each browser gets a private guest library. Keep that browser's site data to retain access; another browser or device starts a separate library.
+
+## Hosting
+
+| Component | Deployment |
+|---|---|
+| Frontend | [Vercel](https://crag-study-agent.vercel.app) |
+| Backend | Google Cloud Compute Engine, running FastAPI in Docker behind Caddy HTTPS |
+| Database, authentication and original files | Supabase |
+| OCR | Gemini API |
+| Answer generation | Groq API |
+| Embeddings and reranking | Local models on the backend VM |
+
+The current frontend release was deployed directly to Vercel. Automatic deployments from GitHub are not connected yet. The backend uses Google Cloud trial credits; continued availability depends on hosting resources and provider quotas.
 
 ## Features
 
@@ -19,8 +43,6 @@ A study assistant for typed and handwritten PDFs, images, and text notes. Upload
 | `backend/app/` | FastAPI API, LangGraph answer pipeline, OCR and retrieval services |
 | `backend/tests/` | Offline regression tests |
 | `supabase/migrations/` | Database, vector search, ownership and storage setup |
-
-Generated evaluation artifacts contain source excerpts. Keep them private; they are ignored by Git and excluded from the backend image.
 
 ## Requirements
 
@@ -96,7 +118,7 @@ On macOS/Linux, create the environment with `python3.11 -m venv .venv`, use `.ve
 
 Keep browser site data to retain access to the guest library. Clearing it or using another browser profile creates a separate identity; it does not delete the original stored documents. Use the app's delete action to remove documents.
 
-For handwritten or mixed PDFs with a printed text layer, select **Force OCR**. Check extraction progress before asking questions. A partial document answers only from readable pages and warns about missing or unclear material. **Resume pending / unclear pages** retries incomplete pages while reusing successful transcriptions. Current defaults allow 30 MB uploads and up to 150 pages.
+For handwritten or mixed PDFs with a printed text layer, select **Handwritten / mixed pages: OCR every page**. Check extraction progress before asking questions. A partial document answers only from readable pages and warns about missing or unclear material. **Resume pending / unclear pages** retries incomplete pages while reusing successful transcriptions. Current defaults allow 30 MB uploads and up to 150 pages.
 
 Gemini OCR batches up to two adjacent scans per request. Native text and saved OCR bypass vision calls. Rate-limit waits respect the provider's cooldown; long waits leave pages pending for a later retry. Raising retry counts does not increase free quotas. OCR may misread equations, diagrams, or handwriting, so compare important answers with the original pages.
 
@@ -122,7 +144,7 @@ npm run build
 
 ## Docker backend and Vercel frontend
 
-Verify the deployment on your target host before sharing publicly.
+The live app uses this deployment layout. For another deployment:
 
 1. Configure backend secrets, `ENVIRONMENT=production`, and `CORS_ORIGINS` with the exact HTTPS frontend origin.
 2. On a Docker-capable host, run `docker compose -f docker-compose.production.yml up -d --build`. This binds port 8000 to host localhost for an HTTPS reverse proxy. Preserve the `model_cache` volume.
@@ -132,4 +154,15 @@ Verify the deployment on your target host before sharing publicly.
 
 `/health` checks process liveness. `/ready` waits for local models and the startup database check; it does not guarantee ongoing database access or provider quota. Interrupted queued/processing uploads resume from saved work at startup. Failed/partial documents remain manually retryable.
 
-Docker is unavailable in the local test environment, so container build/startup still needs verification. Public guest traffic also needs an abuse-control plan; the current UI does not implement CAPTCHA. Keep existing free quotas unless deliberately changing that policy. Answers are not guaranteed within 60 seconds.
+## Deployment verification
+
+The current deployment passed these live checks:
+
+- Docker build and backend startup, including model loading and the database readiness check.
+- Public HTTPS frontend and backend access.
+- Browser guest authentication and frontend-to-backend requests.
+- A TXT document upload, storage, indexing, and a cited answer.
+- A separate browser guest seeing an empty library.
+- Test-document deletion and no browser runtime errors during the tested flow.
+
+The live smoke test used typed text; it does not establish handwritten OCR quality or performance for every document. Adaptive answers may be marked as not independently checked. Processing time and availability depend on document size, model calls, and provider quotas.
