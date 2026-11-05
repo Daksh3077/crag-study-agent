@@ -149,6 +149,10 @@ npm run lint
 npm run build
 ```
 
+Recorded local verification (November 5, 2026): **204/204 backend tests and 8/8 frontend tests passed — 212/212 total.** ESLint, TypeScript compilation and the production build also passed. This is a test pass rate, not an answer-accuracy measurement.
+
+Earlier selected live evaluation recorded **11/11 coverage-rubric passes after targeted fixes and retries**, including **3 handwritten DSA cases**. These were cumulative selected results, not one clean full rerun, and were not rerun during the November 5 cleanup.
+
 ## Docker backend and Vercel frontend
 
 The live app uses this deployment layout. For another deployment:
